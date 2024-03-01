@@ -1,9 +1,11 @@
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 import docker
+import os
+import hashlib
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9'
+app.config['SECRET_KEY'] = hashlib.sha256(os.urandom(32)).hexdigest()
 socketio = SocketIO(app)
 
 client = docker.from_env()
