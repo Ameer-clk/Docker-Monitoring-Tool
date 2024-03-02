@@ -1,31 +1,74 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <title>Docker Monitor</title>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js" integrity="sha512-dC6mRUhU6Tca7TgOeFvXqFvFybv9TG9S8NjhyIWtMD0KkPfCbhYlV7aHy+YrDb5/1Rv76pWvUU6DzHH8gNcFzg==" crossorigin="anonymous"></script>
-</head>
-<body>
-    <h1>Docker Monitor</h1>
-    <table id="containers">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <style>
+      table {
+        table-layout: fixed;
+        width: 100%;
+      }
+
+      th, td {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    </style>
+
+    <script src="//code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js" integrity="sha512-NSq6KesHv50/B8aBt9xTK4xJw/wfGmZj3T3Ly7G8d8MkeUk/1LF3V aq/5nzE/2lntF6iVY+cPJ4T1kZJT8F4Uw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
     <script>
-        const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
-        socket.on('connect', () => {
-            console.log('Connected');
-        });
+      var socket = io.connect('http://' + document.domain + ':' + location.port);
 
-        socket.on('container_status', data => {
-            const containerRow = document.getElementById(data.id);
+      socket.on('connect', function() {
+        console.log('Connected to server');
+      });
 
-            if (!containerRow) {
-                const containerTableBody = document.getElementById('containers').getElementsBy
+      socket.on('container_status', function(data) {
+        console.log('Container status changed:', data);
+
+        var row = $('#' + data.id).find('td');
+        row.eq(1).text(data.name);
+        row.eq(2).text(data.status);
+
+        if (data.status == 'removed') {
+          row.parent().remove();
+        }
+      });
+
+      $(document).ready(function() {
+        socket.emit('connect');
+      });
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Docker Monitor</h1>
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="containers">
+          {% for container in containers %}
+          <tr id="{{ container.id }}">
+            <td>{{ container.id }}</td>
+            <td>{{ container.name }}</td>
+            <td>{{ container.status }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
