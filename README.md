@@ -1,6 +1,6 @@
 # Docker-Monitoring-Tool
 
 
-Installatio:
+Installation:
 
 pip install flask flask-socketio docker
