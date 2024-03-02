@@ -21,10 +21,7 @@ def connect():
     print('Client connected')
     for container in containers:
         socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': container.status}, room=container.id)
-
-@socketio.on('disconnect')
-def disconnect():
-    print('Client disconnected')
+    check_container_status()
 
 def check_container_status():
     global containers
