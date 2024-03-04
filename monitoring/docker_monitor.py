@@ -1,8 +1,8 @@
-from flask import Flask, render_template
-from flask_socketio import SocketIO
 import docker
 import os
 import hashlib
+from flask import Flask, render_template
+from flask_socketio import SocketIO
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = hashlib.sha256(os.urandom(32)).hexdigest()
