@@ -35,9 +35,18 @@ def check_container_status():
     for container in removed_containers:
         socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': 'removed'}, room=container.id)
 
+    for container in new_containers:
+        if container.status == 'exited':
+            socketio.emit('container_stopped', {'id': container.id, 'name': container.name}, room=container.id)
+            show_alert('danger', f"Container {container.name} has stopped!")
+
     containers = new_containers
     socketio.sleep(5)
     check_container_status()
+
+def show_alert(icon, message):
+    """Show an alert using SweetAlert2."""
+    socketio.emit('alert', {'icon': icon, 'message': message})
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
