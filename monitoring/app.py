@@ -49,4 +49,4 @@ def show_alert(icon, message):
     socketio.emit('alert', {'icon': icon, 'message': message})
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port=80)
+    socketio.run(app, debug=True, port=8080)
