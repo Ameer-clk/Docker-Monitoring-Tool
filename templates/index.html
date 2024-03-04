@@ -10,10 +10,6 @@
     <link rel="stylesheet" href="styles.css">
 
     <style>
-      body {
-        background-color: #add8e6;
-      }
-
       table {
         table-layout: fixed;
         width: 100%;
@@ -48,9 +44,23 @@
         }
       });
 
+      socket.on('container_stopped', function(data) {
+        console.log('Container stopped:', data);
+        showAlert('danger', `Container ${data.name} has stopped!`);
+      });
+
       $(document).ready(function() {
         socket.emit('connect');
       });
+
+      function showAlert(icon, message) {
+        Swal.fire({
+          icon: icon,
+          title: 'Alert',
+          text: message,
+          timer: 3000
+        });
+      }
     </script>
   </head>
   <body style="background: url('https://source.unsplash.com/1600x900/?clouds,sky') no-repeat center center fixed; background-size: cover;">
@@ -74,5 +84,3 @@
           {% endfor %}
         </tbody>
       </table>
-    </div>
-    <script src="https://kit.fontawesome
