@@ -7,8 +7,13 @@
     <title>Docker Monitor</title>
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="styles.css">
 
     <style>
+      body {
+        background-color: #add8e6;
+      }
+
       table {
         table-layout: fixed;
         width: 100%;
@@ -48,10 +53,10 @@
       });
     </script>
   </head>
-  <body>
+  <body style="background: url('https://source.unsplash.com/1600x900/?clouds,sky') no-repeat center center fixed; background-size: cover;">
     <div class="container">
       <h1>Docker Monitor</h1>
-      <table class="table table-bordered">
+      <table class="table table-bordered table-dark">
         <thead>
           <tr>
             <th>ID</th>
@@ -63,12 +68,11 @@
           {% for container in containers %}
           <tr id="{{ container.id }}">
             <td>{{ container.id }}</td>
-            <td>{{ container.name }}</td>
+            <td><i class="fas fa-docker"></i> {{ container.name }}</td>
             <td>{{ container.status }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-  </body>
-</html>
+    <script src="https://kit.fontawesome
