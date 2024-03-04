@@ -6,7 +6,7 @@ import docker
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = hashlib.sha256(os.urandom(32)).hexdigest()
-socketio = SocketIO(app)
+socketio = SocketIO(app, port=80)
 
 client = docker.from_env()
 containers = client.containers.list()
@@ -49,4 +49,4 @@ def show_alert(icon, message):
     socketio.emit('alert', {'icon': icon, 'message': message})
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port=8080)
+    socketio.run(app, debug=True, port=80)
