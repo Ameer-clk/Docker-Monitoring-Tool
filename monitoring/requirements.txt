@@ -1,6 +1,4 @@
-flask
-flask-socketio
-docker
-pytz
-
+Flask==2.1.1
+Flask-SocketIO==5.3.1
+docker==5.0.3
 
