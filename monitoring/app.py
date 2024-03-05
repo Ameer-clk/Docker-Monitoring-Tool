@@ -79,3 +79,25 @@ def update_notifications():
         json.dump({'containers': notifications}, f)
 
     return jsonify({'status': 'success'})
+
+
+def check_container_status():
+    global containers
+    while True:
+        new_containers = client.containers.list()
+        added_containers = [c for c in new_containers if c not in containers]
+        removed_containers = [c for c in containers if c not in new_containers]
+
+        for container in added_containers:
+            socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': container.status}, room=container.id)
+
+        for container in removed_containers:
+            socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': 'removed'}, room=container.id)
+
+        for container in new_containers:
+            if container.status == 'exited':
+                socketio.emit('container_stopped', {'id': container.id, 'name': container.name}, room=container.id)
+                show_alert('danger', f"Container {container.name} has stopped!")
+                if container.name in notifications:
+                    send_email_notification(f"Container {container.name} has stopped!", f"Container {container.name} has stopped with IP address {container.attrs['NetworkSettings']['IPAddress']} and ports {container.attrs['NetworkSettings']['Ports']}.")
+        containers = new_containers
