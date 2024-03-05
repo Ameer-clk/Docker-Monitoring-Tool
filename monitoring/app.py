@@ -68,3 +68,14 @@ def check_container_status():
                 socketio.emit('container_stopped', {'id': container.id, 'name': container.name}, room=container.id)
                 show_alert('danger', f"Container {container.name} has stopped!")
                 send_email_notification(f"Container {container.name} has stopped!", f"Container {container.name} has
+
+
+    @app.route('/update_notifications', methods=['POST'])
+def update_notifications():
+    data = request.get_json()
+    notifications = data.get('notifications')
+
+    with open('notifications.json', 'w') as f:
+        json.dump({'containers': notifications}, f)
+
+    return jsonify({'status': 'success'})
