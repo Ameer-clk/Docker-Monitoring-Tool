@@ -49,4 +49,5 @@ def show_alert(icon, message):
     socketio.emit('alert', {'icon': icon, 'message': message})
 
 if __name__ == '__main__':
-    socketio.run(app, port=5000)  # Change port as needed, remove debug=True in production
+    socketio.run(app, port=5000)
+
