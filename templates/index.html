@@ -84,3 +84,16 @@
           {% endfor %}
         </tbody>
       </table>
+
+  <form id="notification-form">
+  <label for="containers">Containers:</label><br>
+  <textarea id="containers" name="containers" rows="10" cols="50">
+    {% for container in containers %}
+      {{ container.name }}
+      {% if not loop.last %}
+        ,
+      {% endif %}
+    {% endfor %}
+  </textarea><br>
+  <input type="submit" value="Update Notifications">
+</form>
