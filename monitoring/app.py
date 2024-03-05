@@ -1,103 +1,92 @@
-import os
-import hashlib
-import docker
-from flask import Flask, render_template, request, jsonify
-from flask_socketio import SocketIO
-import smtplib
-from email.mime.text import MIMEText
+from flask import Flask, render_template, redirect, url_for, flash, request
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = hashlib.sha256(os.urandom(32)).hexdigest()
-socketio = SocketIO(app)
+app.config['SECRET_KEY'] = 'mysecretkey'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+db = SQLAlchemy(app)
 
-# Email configuration
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'your-email@gmail.com'
-EMAIL_HOST_PASSWORD = 'your-email-password'
-RECIPIENT_EMAILS = ['recipient1@gmail.com', 'recipient2@gmail.com']
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
-client = docker.from_env()
-containers = client.containers.list()
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(200), nullable=False)
+    date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 @app.route('/')
 def index():
-    containers_info = [{'id': c.id, 'name': c.name, 'status': c.status} for c in containers]
-    return render_template('index.html', containers=containers_info)
+    return render_template('index.html')
 
-@app.route('/notify', methods=['POST'])
-def notify():
-    data = request.get_json()
-    subject = data.get('subject')
-    body = data.get('body')
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = generate_password_hash(request.form['password'])
 
-    msg = MIMEText(body)
-    msg['Subject'] = subject
-    msg['From'] = EMAIL_HOST_USER
-    msg['To'] = ', '.join(RECIPIENT_EMAILS)
+        new_user = User(username=username, password=password)
+        db.session.add(new_user)
+        db.session.commit()
 
-    with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
-        server.starttls()
-        server.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD)
-        server.sendmail(EMAIL_HOST_USER, RECIPIENT_EMAILS, msg.as_string())
+        flash('Registration successful. You can now log in.')
+        return redirect(url_for('login'))
 
-    return jsonify({'status': 'success'})
+    return render_template('register.html')
 
-@socketio.on('connect')
-def connect():
-    print('Client connected')
-    for container in containers:
-        socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': container.status}, room=container.id)
-    check_container_status()
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
 
-def check_container_status():
-    global containers
-    while True:
-        new_containers = client.containers.list()
-        added_containers = [c for c in new_containers if c not in containers]
-        removed_containers = [c for c in containers if c not in new_containers]
+        user = User.query.filter_by(username=username).first()
 
-        for container in added_containers:
-            socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': container.status}, room=container.id)
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for('notifications'))
 
-        for container in removed_containers:
-            socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': 'removed'}, room=container.id)
+        flash('Login unsuccessful. Please check your username and password.')
 
-        for container in new_containers:
-            if container.status == 'exited':
-                socketio.emit('container_stopped', {'id': container.id, 'name': container.name}, room=container.id)
-                show_alert('danger', f"Container {container.name} has stopped!")
-                send_email_notification(f"Container {container.name} has stopped!", f"Container {container.name} has
+    return render_template('login.html')
 
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
 
-    @app.route('/update_notifications', methods=['POST'])
-def update_notifications():
-    data = request.get_json()
-    notifications = data.get('notifications')
+@app.route('/notifications')
+@login_required
+def notifications():
+    notifications = Notification.query.filter_by(user_id=current_user.id).all()
+    return render_template('notifications.html', notifications=notifications)
 
-    with open('notifications.json', 'w') as f:
-        json.dump({'containers': notifications}, f)
+@app.route('/add_notification', methods=['POST'])
+@login_required
+def add_notification():
+    name = request.form['name']
+    description = request.form['description']
 
-    return jsonify({'status': 'success'})
+    new_notification = Notification(name=name, description=description, user_id=current_user.id)
+    db.session.add(new_notification)
+    db.session.commit()
 
+    return redirect(url_for('notifications'))
 
-def check_container_status():
-    global containers
-    while True:
-        new_containers = client.containers.list()
-        added_containers = [c for c in new_containers if c not in containers]
-        removed_containers = [c for c in containers if c not in new_containers]
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
-        for container in added_containers:
-            socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': container.status}, room=container.id)
-
-        for container in removed_containers:
-            socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': 'removed'}, room=container.id)
-
-        for container in new_containers:
-            if container.status == 'exited':
-                socketio.emit('container_stopped', {'id': container.id, 'name': container.name}, room=container.id)
-                show_alert('danger', f"Container {container.name} has stopped!")
-                if container.name in notifications:
-                    send_email_notification(f"Container {container.name} has stopped!", f"Container {container.name} has stopped with IP address {container.attrs['NetworkSettings']['IPAddress']} and ports {container.attrs['NetworkSettings']['Ports']}.")
-        containers = new_containers
+if __name__ == '__main__':
+    app.run(debug=True)
