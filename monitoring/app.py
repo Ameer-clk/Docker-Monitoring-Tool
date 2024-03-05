@@ -1,30 +1,25 @@
-from flask import Flask, render_template, redirect, url_for, flash, request
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+import time
+import docker
+from flask_socketio import SocketIO
 
+# Initialize the SocketIO object
+socketio = SocketIO()
+
+def check_container_status():
+    client = docker.from_env()
+    container = client.containers.get('my_container') # replace with your container name or ID
+    while True:
+        time.sleep(60) # check every minute
+        if container.status != 'running':
+            user = User.query.filter_by(id=1).first() # replace with the user ID that should receive notifications
+            socketio.emit('container_status', {'status': 'down'}, room=user.id)
+
+# Initialize the Flask application and SocketIO
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'mysecretkey'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
-db = SQLAlchemy(app)
+socketio.init_app(app)
 
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
-
-class Notification(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.String(200), nullable=False)
-    date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-
+# Define the routes for the application
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -84,9 +79,19 @@ def add_notification():
 
     return redirect(url_for('notifications'))
 
+@app.route('/socket.io/<path:path>')
+def handle_socketio(path):
+    socketio.emit('container_status', {'status': 'running'}, room=current_user.id)
+    return socketio.serve_forever()
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Start the container status monitoring thread
+    thread = Thread(target=check_container_status)
+    thread.start()
+
+    # Start the Flask application and SocketIO
+    app.run(debug=True, host='0
