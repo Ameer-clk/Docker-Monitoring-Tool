@@ -1,12 +1,12 @@
 import os
 import hashlib
+import docker
 from flask import Flask, render_template
 from flask_socketio import SocketIO
-import docker
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = hashlib.sha256(os.urandom(32)).hexdigest()
-socketio = SocketIO(app, port=80)
+socketio = SocketIO(app)
 
 client = docker.from_env()
 containers = client.containers.list()
@@ -25,28 +25,28 @@ def connect():
 
 def check_container_status():
     global containers
-    new_containers = client.containers.list()
-    added_containers = [c for c in new_containers if c not in containers]
-    removed_containers = [c for c in containers if c not in new_containers]
+    while True:
+        new_containers = client.containers.list()
+        added_containers = [c for c in new_containers if c not in containers]
+        removed_containers = [c for c in containers if c not in new_containers]
 
-    for container in added_containers:
-        socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': container.status}, room=container.id)
+        for container in added_containers:
+            socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': container.status}, room=container.id)
 
-    for container in removed_containers:
-        socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': 'removed'}, room=container.id)
+        for container in removed_containers:
+            socketio.emit('container_status', {'id': container.id, 'name': container.name, 'status': 'removed'}, room=container.id)
 
-    for container in new_containers:
-        if container.status == 'exited':
-            socketio.emit('container_stopped', {'id': container.id, 'name': container.name}, room=container.id)
-            show_alert('danger', f"Container {container.name} has stopped!")
+        for container in new_containers:
+            if container.status == 'exited':
+                socketio.emit('container_stopped', {'id': container.id, 'name': container.name}, room=container.id)
+                show_alert('danger', f"Container {container.name} has stopped!")
 
-    containers = new_containers
-    socketio.sleep(5)
-    check_container_status()
+        containers = new_containers
+        socketio.sleep(5)
 
 def show_alert(icon, message):
     """Show an alert using SweetAlert2."""
     socketio.emit('alert', {'icon': icon, 'message': message})
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port=8080)
+    socketio.run(app, port=5000)  # Change port as needed, remove debug=True in production
