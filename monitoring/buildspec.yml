@@ -1,0 +1,24 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+    commands:
+      - echo "Install phase..."
+      # Install any dependencies required for your Python application
+      - pip install -r requirements.txt
+  pre_build:
+    commands:
+      - echo "Pre-build phase..."
+      # You can add any commands needed before building your application
+  build:
+    commands:
+      - echo "Build phase..."
+      # Execute build commands here if necessary
+  post_build:
+    commands:
+      - echo "Post-build phase..."
+      # You can add any commands needed after building your application
+      # For example, deploying your application
+      - python app.py
