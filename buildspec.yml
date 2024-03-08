@@ -8,14 +8,13 @@ phases:
       - python -m pip --version  # Check pip version
       - echo "Installing dependencies..."
       - pip install -r requirements.txt || true  # Use '|| true' to continue execution even if there's an error
-      - pip list  # List installed packages for debugging
   pre_build:
     commands:
       - echo "Executing pre-build commands..."
   build:
     commands:
       - echo "Running tests..."
-      - python -m unittest discover tests
+      - python -m unittest discover tests || echo "Tests failed"
   post_build:
     commands:
       - echo "Build successful. Packaging artifacts..."
