@@ -1,23 +1,33 @@
 import time
 import docker
+from flask import Flask, render_template, redirect, url_for, flash, request
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_socketio import SocketIO
 
 # Initialize the SocketIO object
 socketio = SocketIO()
 
-def check_container_status():
-    client = docker.from_env()
-    container = client.containers.get('my_container') # replace with your container name or ID
-    while True:
-        time.sleep(60) # check every minute
-        if container.status != 'running':
-            user = User.query.filter_by(id=1).first() # replace with the user ID that should receive notifications
-            socketio.emit('container_status', {'status': 'down'}, room=user.id)
-
 # Initialize the Flask application and SocketIO
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'mysecretkey'
 socketio.init_app(app)
+
+# Initialize the login manager
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# Define the User and Notification models
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True)
+    password = db.Column(db.String(100))
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    description = db.Column(db.String(200))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
 # Define the routes for the application
 @app.route('/')
@@ -82,16 +92,16 @@ def add_notification():
 @app.route('/socket.io/<path:path>')
 def handle_socketio(path):
     socketio.emit('container_status', {'status': 'running'}, room=current_user.id)
-    return socketio.serve_forever()
+    return socketio.handle_request()
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-if __name__ == '__main__':
-    # Start the container status monitoring thread
-    thread = Thread(target=check_container_status)
-    thread.start()
-
-    # Start the Flask application and SocketIO
-    app.run(debug=True, host='0
+# Start the container status monitoring thread
+def check_container_status():
+    client = docker.from_env()
+    container = client.containers.get('my_container') # replace with your container name or ID
+    while True:
+        time.sleep(60) # check every minute
+        if container
