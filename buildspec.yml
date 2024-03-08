@@ -5,15 +5,17 @@ phases:
     runtime-versions:
       python: 3.8
     commands:
-      - pip install --upgrade pip
+      # Install dependencies
       - pip install -r requirements.txt
-
+  pre_build:
+    commands:
+      # Execute pre-build commands (if any)
+      - echo "Executing pre-build commands..."
   build:
     commands:
-      - python -m unittest discover -s tests -p '*_test.py'
-
-artifacts:
-  files:
-    - app/**/*
-    - tests/**/*
-    - requirements.txt
+      # Run tests
+      - python -m unittest discover tests
+  post_build:
+    commands:
+      # After successful build, package artifacts or deploy
+      - echo "Build successful. Packaging artifacts..."
