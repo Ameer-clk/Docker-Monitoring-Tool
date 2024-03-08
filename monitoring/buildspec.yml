@@ -1,15 +1,19 @@
 version: 0.2
 
 phases:
-  pre_build:
+  install:
+    runtime-versions:
+      python: 3.8
     commands:
-      - pip3 install --user awscli
-      - $(aws ecr get-login --no-include-email --region <your-region>)
-      - pip3 install -r requirements.txt
+      - pip install --upgrade pip
+      - pip install -r requirements.txt
+
   build:
     commands:
-      - echo "Building the Python application"
-      # Add any additional build commands here
-  post_build:
-    commands:
-      - echo "Build completed on `date`"
+      - python -m unittest discover -s tests -p '*_test.py'
+
+artifacts:
+  files:
+    - app/**/*
+    - tests/**/*
+    - requirements.txt
