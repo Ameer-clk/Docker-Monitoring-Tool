@@ -5,6 +5,3 @@
     ]
 }
 
-notifications = []
-with open('notifications.json', 'r') as f:
-    notifications = json.load(f)['containers']
